@@ -6,7 +6,10 @@ String songfile;
 
 float sensitivity;
 
+float avg,avg1,avg2,avg3,avg4;
+
 float idx;
+int idxi;
 
 boolean shiftPressed;
 int arrowPressed;
@@ -47,12 +50,14 @@ void setup() {
   listen = false;
   sensitivity = 1;
   idx = 0;
+  idxi = 0;
   shiftPressed = false;
   arrowPressed = -1;
   initialized = false;
   
   fullScreen(P2D);
   //frameRate(60);
+  background(0);
   
   selectInput("Select song file to visualize:", "fileSelected");
 }
@@ -135,7 +140,11 @@ void draw() {
       for(int i = 0; i < len; i++) {
         avgs[i] = fft.getAvg(i);
       }
-      float avg = sum(avgs)/avgs.length*sensitivity;
+      avg = sum(avgs)/avgs.length*sensitivity;
+      
+      //if (abs(old-avg) > .1) {
+      //  background(0);
+      //}
       
       for(int i = avgs.length;i > 0; i--) {
         if (i < avgs.length/2+1) {
@@ -169,6 +178,7 @@ void draw() {
       balla.display();
       
       idx += avg;
+      idxi += 1;
     }
   }
 }
@@ -200,11 +210,11 @@ class BallArray {
   
   void update(float[] avgs) {
     int interval = floor(float(avgs.length)/4);
-    float avg = sum(avgs)/avgs.length*sensitivity;
-    float avg1 = sum(subset(avgs,0,interval))/interval*sensitivity;
-    float avg2 = sum(subset(avgs,interval,interval))/interval*sensitivity;
-    float avg3 = sum(subset(avgs,interval*2,interval))/interval*sensitivity;
-    float avg4 = sum(subset(avgs,interval*3))/(avgs.length-interval*3)*sensitivity;
+    avg = sum(avgs)/avgs.length*sensitivity;
+    avg1 = sum(subset(avgs,0,interval))/interval*sensitivity;
+    avg2 = sum(subset(avgs,interval,interval))/interval*sensitivity;
+    avg3 = sum(subset(avgs,interval*2,interval))/interval*sensitivity;
+    avg4 = sum(subset(avgs,interval*3))/(avgs.length-interval*3)*sensitivity;
     RED = constrain(avg1*255,0,255);
     GREEN = constrain(avg2*255,0,255);
     BLUE = constrain(avg3*255,0,255);
