@@ -6,8 +6,6 @@ String songfile;
 
 float sensitivity;
 
-float avg,avg1,avg2,avg3,avg4;
-
 float idx;
 int idxi;
 
@@ -22,8 +20,6 @@ AudioInput in;
 boolean initialized;
 
 BallArray balla;
-
-float RED, GREEN, BLUE;
 
 float angleto(float x1,float y1, float x2,float y2) {
   float dx = x1-x2;
@@ -138,16 +134,12 @@ void draw() {
       int len = fft.avgSize();
       float[] avgs = new float[len];
       for(int i = 0; i < len; i++) {
-        avgs[i] = fft.getAvg(i);
+        avgs[i] = fft.getAvg(i)*sensitivity;
       }
-      avg = sum(avgs)/avgs.length*sensitivity;
+      balla.params.update(avgs);
       
-      //if (abs(old-avg) > .1) {
-      //  background(0);
-      //}
-      
-      for(int i = avgs.length;i > 0; i--) {
-        if (i < avgs.length/2+1) {
+      for(int i = avgs.length/2;i > 0; i--) {
+        if (true) {
           float neigha;
           if (i > 0) {
             neigha = (avgs[i]+avgs[i-1]+avgs[i+1])/3;
@@ -157,14 +149,11 @@ void draw() {
           //float red = ((1-i/len)*avgs[i]);
           //float green = ((i/len)*avgs[i]);
           //float blue = (neigha*(1+(i*i)/len));
-          float red = RED;
-          float green = GREEN;
-          float blue = BLUE;
-          float r = pow(avgs[i]/50,2)*sensitivity;
+          float r = pow(avgs[i]/50,2);
           
-          stroke(red*sensitivity,green*sensitivity,blue*sensitivity,avg/2+neigha/2);
-          strokeWeight((4+avg)*height/len);
-          float a = (idx/400)+(avg)+(2*PI*float(i)/len);
+          stroke(balla.params.red,balla.params.green,balla.params.blue,balla.params.avg/2+neigha/2);
+          strokeWeight((4+balla.params.avg)*height/len);
+          float a = (idx/400)+(balla.params.avg)+(2*PI*float(i)/len);
           translate(random(-r,r),random(-r,r));
           line(balla.sun.x,balla.sun.y,balla.sun.x+cos(a)*width*2,balla.sun.y+sin(a)*height*2);
           translate(random(-r,r),random(-r,r));
@@ -173,11 +162,21 @@ void draw() {
         }
       }
       
-      balla.update(avgs);
+      if (balla.params.avg <= 1) {
+        for (int b=0;b<balla.balls.size();b++) {
+          Ball ball = balla.balls.get(b);
+          
+          stroke(balla.params.red,balla.params.green,balla.params.blue,balla.params.avg*3);
+          strokeWeight((4+balla.params.avg*8)*height/len);
+          line(ball.x,ball.y,balla.sun.x,balla.sun.y);
+        }
+      }
+      
+      balla.update();
       balla.move();
       balla.display();
       
-      idx += avg;
+      idx += balla.params.avg;
       idxi += 1;
     }
   }
@@ -191,59 +190,43 @@ class BallArray {
   float a = random(2*PI);
   float rad, b;
   float rpow = 2;
-  Ball[] balls;
+  Params params;
+  ArrayList<Ball> balls;
   Ball sun = new Ball(width/2,height/2,this);
   BallArray(int count) {
-    balls = new Ball[count];
+    params = new Params();
+    balls = new ArrayList<Ball>();
     
     sun.speed = .01;
     sun.size = 5;
     sun.shades = shades*2;
-    balls = (Ball[])append(balls,sun);
+    balls.add(sun);
     
-    for (int i=0; i<balls.length-1; i++) {
-      balls[i] = new Ball(random(0,width),random(0,height),this);
-      balls[i].shades = shades;
+    for (int i=0; i<count; i++) {
+      Ball b = new Ball(random(0,width),random(0,height),this);
+      b.shades = shades;
+      balls.add(b);
     }
-    
   }
   
-  void update(float[] avgs) {
-    int interval = floor(float(avgs.length)/4);
-    avg = sum(avgs)/avgs.length*sensitivity;
-    avg1 = sum(subset(avgs,0,interval))/interval*sensitivity;
-    avg2 = sum(subset(avgs,interval,interval))/interval*sensitivity;
-    avg3 = sum(subset(avgs,interval*2,interval))/interval*sensitivity;
-    avg4 = sum(subset(avgs,interval*3))/(avgs.length-interval*3)*sensitivity;
-    RED = constrain(avg1*255,0,255);
-    GREEN = constrain(avg2*255,0,255);
-    BLUE = constrain(avg3*255,0,255);
-    
-    float rpows = 1.5-(avgs[0]-avg1-avg2-avg3-avg4)/100;
-    if(rpows < 0.3){rpows = 0.3;}
-    //println("pow",rpows);
-    float ms = avg+pow(constrain(avg*1.5,0,7),2.5); //pow(constrain(avg,0,12)*.7,3)*2;
-    //println("m",ms);
-    float bs = (float)Math.tanh(ms);
-    for (int i = 0; i < balls.length; i++) {
+  void update() {
+    for (int i = 0; i < balls.size(); i++) {
       //int nxti = i+1;
       //if (nxti > balls.length-1) {nxti = 0;}
       //balls[i].x += (right-left)/.1;
-      balls[i].bass = avg1;
-      balls[i].m = ms;
-      balls[i].b = bs;
-      balls[i].rpow = rpows;
+      Ball b = balls.get(i);
       
-      balls[i].update();
+      b.update();
       
-      if (avg < 1) {
-        for (int i2 = 0; i2 < balls.length; i2++) {
+      if (params.avg <= 1) {
+        for (int i2 = 0; i2 < balls.size(); i2++) {
+          Ball b2 = balls.get(i2);
           if (i != i2) { // & d < (2+balls[i2].m/2)*balls[i2].size*40
-            float d = dist(balls[i].x,balls[i].y,balls[i2].x,balls[i2].y);
-            float t = angleto(balls[i].x,balls[i].y,balls[i2].x,balls[i2].y);
-            float sp = (pow(balls[i2].size,2)*balls[i].speed*(avg1-avg3))/(200+d/4);
-            balls[i].vx -= cos(t)*balls[i].gx*sp;
-            balls[i].vy -= sin(t)*balls[i].gy*sp;
+            float d = dist(b.x,b.y,b2.x,b2.y);
+            float t = angleto(b.x,b.y,b2.x,b2.y);
+            float sp = (pow(b2.size,2)*b.speed*(params.avg1-params.avg3))/(200+d/4);
+            b.vx -= cos(t)*b.gx*sp;
+            b.vy -= sin(t)*b.gy*sp;
           }
         }
       }
@@ -254,29 +237,69 @@ class BallArray {
   }
   
   void move() {
-    for (int i=0; i<balls.length; i++) {
-      balls[i].move();
+    for (int i=0; i<balls.size(); i++) {
+      Ball b = balls.get(i);
+      if (b != null) {
+        b.move();
+      }
     }
   }
   
   void display() {
-    for (int i=0; i<balls.length; i++) {
-      balls[i].display();
+    for (int i=0; i<balls.size(); i++) {
+      Ball b = balls.get(i);
+      if (b != null) {
+        b.display();
+      }
     }
   }
 }
 
+
+class Params {
+  float rpow, m;
+  float[] avgs;
+  float avg;
+  float avg1,avg2,avg3,avg4;
+  float red,green,blue;
+  
+  Params() {
+    rpow = 2;
+  }
+  
+  void update(float[] avgst) {
+    avgs = avgst;
+    avg = sum(avgs)/avgs.length;
+    
+    int interval = floor(float(avgs.length)/4);
+    avg1 = sum(subset(avgs,0,interval))/interval;
+    avg2 = sum(subset(avgs,interval,interval))/interval;
+    avg3 = sum(subset(avgs,interval*2,interval))/interval;
+    avg4 = sum(subset(avgs,interval*3))/(avgs.length-interval*3);
+    float max = max(avg1,avg2,avg3);
+    
+    red = avg1*(255/(1+max*.1));
+    green = avg2*(255/(1+max*.1));
+    blue = avg3*(255/(1+max*.1));
+    
+    rpow = 1.5-(avgs[0]-avg1-avg2-avg3-avg4)/100;
+    if(rpow < 0.3){rpow = 0.3;}
+    m = avg+pow(constrain(avg*1.5,0,7),2.5); //pow(constrain(avg,0,12)*.7,3)*2;
+    
+  }
+}
+
+
 class Ball {
-  float vx,vy,x,y,m;
+  float vx,vy,x,y;
   float gx;
   float gy;
-  float bass;
   float speed = 1;
   float size = 1;
+  float age = 0;
   int shades;
   float a = random(2*PI);
-  float rad, b;
-  float rpow = 2;
+  float rad;
   BallArray parent;
   Ball(float xt, float yt, BallArray parentt) {
     x = xt;
@@ -285,26 +308,24 @@ class Ball {
     shades = parent.shades;
     gx = random(.25,1.5);
     gy = random(.25,1.5);
-    //gx = round(random(-1,1));
-    //if(gx == 0){gy = round(random(0,1))*2-1;}
-    //else{gy = round(random(-1,1));}
   }
   
   void update() {
-    //if (bass > 50) {
-    //  float r = (bass/200)*speed;
+    //if (parent.params.avg1 > 50) {
+    //  float r = (parent.params.avg1/200)*speed;
     //  x += random(-r,r);
     //  y += random(-r,r);
     //}
     vx *= .9;
     vy *= .9;
-    vx -= cos(a)*m*speed/15;
-    vy -= sin(a)*m*speed/15;
-    rad = 2+(2+m/2)*size;
+    vx -= cos(a)*parent.params.m*speed/15;
+    vy -= sin(a)*parent.params.m*speed/15;
+    rad = 2+(2+parent.params.m/2)*size;
     if (x+rad > width) {a = -a+PI; x = width-rad; vx *= -.9;}
     else if (x-rad < 0) {a = -a+PI; x = rad; vx *= -.9;}
     if (y+rad > height) {a *= -1; y = height-rad; vy *= -.9;}
     else if (y-rad < 0) {a *= -1; y = rad; vy *= -.9;}
+    age += 1;
   }
   
   void move() {
@@ -313,14 +334,14 @@ class Ball {
   }
   
   void display() {
-    rad = 2+(2+m)*size;
+    rad = 2+(2+parent.params.m)*size;
     //strokeWeight(rad/2);
     //stroke(RED*b,GREEN*b,BLUE*b);
     //line(x,y,x+vx*2,y+vy*2);
     noStroke();
     for (float i=shades; i>0; i--) {
-      fill(RED*b,GREEN*b,BLUE*b,255/pow(i,1.5)); // 255/(1+10*pow(i,rpow)/shades)
-      float d = pow(i/shades,rpow); // i/shades+pow(i,rpow)/shades
+      fill(parent.params.red,parent.params.green,parent.params.blue,255/pow(i,1.5)); // 255/(1+10*pow(i,rpow)/shades)
+      float d = pow(i/shades,parent.params.rpow); // i/shades+pow(i,rpow)/shades
       ellipse(x,y,rad*2*d+abs(vx*i/10),rad*2*d+abs(vy*i/10));
     }
   }
