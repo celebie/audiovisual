@@ -24,6 +24,12 @@ class BallArray {
     }
   }
   
+  float angleto(float x1,float y1, float x2,float y2) {
+    float dx = x1-x2;
+    float dy = y1-y2;
+    return atan2(dy,dx);
+  }
+  
   void update() {
     for (int i = 0; i < balls.size(); i++) {
       //int nxti = i+1;

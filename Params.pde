@@ -9,8 +9,8 @@ class Params {
     rpow = 2;
   }
   
-  void update(float[] avgst) {
-    avgs = avgst;
+  void update(float[] avgs_) {
+    avgs = avgs_;
     avg = sum(avgs)/avgs.length;
     
     int interval = floor(float(avgs.length)/4);
