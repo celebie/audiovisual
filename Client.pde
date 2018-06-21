@@ -29,6 +29,9 @@ class Client {
     
     if (!hide) {
       text(title,20,20);
+      if (visualizer.sensitivity != 1.) {
+        text(nf(visualizer.sensitivity,1,1),width-50,20);
+      }
     }
     
     if (visualizer.done) {
