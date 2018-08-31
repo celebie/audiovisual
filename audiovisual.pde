@@ -36,7 +36,7 @@ void setup() {
   minim = new Minim(this);
   client = new Client();
   
-  fullScreen(P2D);
+  fullScreen(P3D);
   //frameRate(60);
   
   selectFolder("Select song folder to visualize:", "folderSelected");
